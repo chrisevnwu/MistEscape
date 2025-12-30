@@ -129,10 +129,30 @@ public class GameManager : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
 
+        // 动态检测地图上的药剂数量
+        UpdateTotalMedicineCount();
+
         // 触发初始事件
         OnMedicineCollected?.Invoke(collectedMedicines, totalMedicines);
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
         OnHealthChanged?.Invoke(playerHealth, maxPlayerHealth);
+    }
+
+    /// <summary>
+    /// 动态更新地图上的药剂总数
+    /// </summary>
+    public void UpdateTotalMedicineCount()
+    {
+        GameObject[] medicines = GameObject.FindGameObjectsWithTag("Medicine");
+        if (medicines.Length > 0)
+        {
+            totalMedicines = medicines.Length;
+            Debug.Log($"检测到地图上有 {totalMedicines} 个药剂");
+        }
+        else
+        {
+            Debug.LogWarning("未检测到任何药剂！保持默认值: " + totalMedicines);
+        }
     }
 
     /// <summary>
@@ -165,6 +185,13 @@ public class GameManager : MonoBehaviour
         {
             CollectedMedicines++;
             Debug.Log($"收集药剂: {collectedMedicines}/{totalMedicines}");
+            
+            // 胜利接近提示
+            int remaining = totalMedicines - collectedMedicines;
+            if (remaining > 0 && remaining <= 3)
+            {
+                Debug.Log($"🎯 即将胜利！还剩 {remaining} 个药剂！");
+            }
         }
     }
 
@@ -260,7 +287,19 @@ public class GameManager : MonoBehaviour
         {
             isGameOver = true;
             isGameWon = true;
-            Debug.Log("=== 游戏胜利！ ===");
+            
+            Debug.Log("=================================================");
+            Debug.Log($"🎉🎉🎉 游戏胜利！已收集全部 {totalMedicines} 个药剂！🎉🎉🎉");
+            Debug.Log("=================================================");
+            
+            // 慢动作效果
+            Time.timeScale = 0.3f;
+            
+            // 显示鼠标光标
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            
+            // 触发事件
             OnGameStateChanged?.Invoke(true, true);
         }
     }

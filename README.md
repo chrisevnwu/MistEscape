@@ -371,7 +371,9 @@ NavMesh 是敌人 AI 使用的导航网格，**必须正确烘焙**敌人才能�
 1. 按 `Win + R`，输入 `cmd`，按回车
 2. 使用 `cd` 命令导航到项目目录：
    ```bash
-   cd "d:\Users\15407\final project"
+   conda activate D:\conda_envs\my_workspace
+   cd /d "d:\Users\15407\final project"
+   mlagents-learn Assets/ML-Agents/trainer_config.yaml --run-id=MistEscape_PlanB_v1 --force
    ```
 3. 确认你在正确的目录（输入 `dir` 应该能看到 `Assets` 文件夹）
 
@@ -423,7 +425,8 @@ TensorBoard 可以可视化训练进度：
 1. **打开新的命令行窗口**（保持原训练窗口运行）
 2. 导航到项目目录：
    ```bash
-   cd "d:\Users\15407\final project"
+   conda activate D:\conda_envs\my_workspace
+   cd /d "d:\Users\15407\final project"
    ```
 3. 启动 TensorBoard：
    ```bash
@@ -452,6 +455,240 @@ TensorBoard 可以可视化训练进度：
 7. 按 Play，AI 将自动控制玩家！
 
 ---
+
+### 🖥️ 服务器训练（无GUI训练）
+
+如果需要在服务器上训练（没有Unity编辑器GUI），需要先构建Unity可执行文件。
+
+#### 第一步：构建 Unity 可执行文件
+
+1. **打开 Build Settings**：
+   - 菜单栏：`File → Build Settings`（或按 `Ctrl + Shift + B`）
+
+2. **添加训练场景**：
+   - 确保 `Scenes/SampleScene` 在 **Scenes In Build** 列表中
+   - 如果没有，点击 **Add Open Scenes** 按钮添加
+   - 确保场景前面的复选框是**勾选状态** ✓
+
+3. **选择目标平台**：
+   
+   ![Build Settings](file:///C:/Users/15407/.gemini/antigravity/brain/1ba7888d-041c-40e6-aa3f-ec6901c5f581/uploaded_image_1766823143574.png)
+   
+   - **Linux 服务器**：选择左侧的 `Dedicated Server`，然后在右侧 Target Platform 选择 `Linux`
+   - **Windows 服务器**：选择左侧的 `Dedicated Server`，然后在右侧 Target Platform 选择 `Windows`
+   - 点击 **Switch Platform** 按钮切换平台（首次需要等待Unity重新编译资源）
+
+4. **配置构建选项**：
+   - **Architecture**：选择 `Intel 64-bit`（适用于大多数服务器）
+   - **取消勾选** `Development Build`（训练时不需要）
+   - **取消勾选** `Autoconnect Profiler`
+   - **其他选项保持默认**
+
+5. **开始构建**：
+   - 点击 **Build** 按钮（**不是** "Build And Run"）
+   - 选择输出目录，例如：
+     ```
+     d:\Users\15407\final project\Build\LinuxServer
+     ```
+   - 输入可执行文件名称：`MistEscape`
+   - 点击 **保存**
+   - 等待构建完成（可能需要 5-15 分钟）
+
+6. **验证构建结果**：
+   
+   构建成功后，输出目录应包含：
+   
+   **Linux 构建：**
+   ```
+   Build/LinuxServer/
+   ├── MistEscape.x86_64          ← 可执行文件
+   ├── MistEscape_Data/           ← 游戏数据
+   └── UnityPlayer.so
+   ```
+   
+   **Windows 构建：**
+   ```
+   Build/WindowsServer/
+   ├── MistEscape.exe             ← 可执行文件
+   ├── MistEscape_Data/           ← 游戏数据
+   └── UnityPlayer.dll
+   ```
+
+#### 第二步：上传到服务器并训练
+
+详细的服务器配置、文件上传、训练命令等步骤，请参考：**[服务器训练指南.md](服务器训练指南.md)**
+
+**快速命令参考**（在服务器上运行）：
+
+```bash
+# Linux 服务器
+mlagents-learn trainer_config.yaml \
+  --env=./Build/LinuxServer/MistEscape.x86_64 \
+  --run-id=MistEscape_Server_v1 \
+  --no-graphics \
+  --num-envs=4 \
+  --force
+
+# Windows 服务器
+mlagents-learn trainer_config.yaml \
+  --env=./Build/WindowsServer/MistEscape.exe \
+  --run-id=MistEscape_Server_v1 \
+  --no-graphics \
+  --num-envs=4 \
+  --force
+```
+
+**重要参数说明**：
+- `--env`：指定构建好的可执行文件路径
+- `--no-graphics`：**必须！** 无图形界面模式运行
+- `--num-envs=4`：并行运行4个环境实例（加速训练3-4倍）
+
+---
+
+## 🚀 多环境并行训练（加速训练）
+
+> **为什么需要多环境？**
+> 单个 Agent 训练速度较慢，因为大部分时间在等待 Unity 模拟。通过创建多个并行训练环境，可以同时收集多个 Agent 的经验，**训练速度提升 4-8 倍**！
+
+### 架构说明
+
+多环境训练使用 `TrainingArea` 组件来管理独立的训练区域：
+
+```
+Scene
+├── TrainingArea_1
+│   ├── Player (PlayerAgent)
+│   ├── Enemies (自动生成)
+│   ├── Medicines (自动生成)
+│   └── Environment (Floor, Walls)
+├── TrainingArea_2
+│   └── ... (相同结构)
+├── TrainingArea_3
+│   └── ...
+└── TrainingArea_4
+    └── ...
+```
+
+### 步骤 1：创建第一个训练区域
+
+#### 1.1 创建 TrainingArea 父对象
+
+1. 在 **Hierarchy** 窗口中右键，选择 **Create Empty**
+2. 重命名为 `TrainingArea_1`
+3. 在 **Inspector** 中设置 Position 为 `(0, 0, 0)`
+4. 点击 **Add Component**，搜索并添加 `Training Area` 脚本
+
+#### 1.2 将场景对象移入 TrainingArea
+
+将以下对象**拖拽**到 `TrainingArea_1` 下成为子对象：
+- `Player`
+- `Floor`（地板）
+- `Walls`（墙壁，如果有的话）
+- `NavMesh`（导航网格对象）
+
+> **注意**：GameManager 和 UIManager 保持在根级别，不要移入 TrainingArea
+
+#### 1.3 配置 TrainingArea 组件
+
+选中 `TrainingArea_1`，在 Inspector 中配置 `Training Area (Script)`：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| **Medicine Prefab** | 拖入 Medicine 预制件 | 药剂预制件 |
+| **Enemy Prefab** | 拖入 Enemy 预制件 | 敌人预制件 |
+| **Medicine Count** | `8` | 每个区域的药剂数量 |
+| **Enemy Count** | `4` | 每个区域的敌人数量 |
+| **Spawn Radius** | `20` | 随机生成半径 |
+
+#### 1.4 配置 Player（训练模式）
+
+1. 选中 `TrainingArea_1` 下的 **Player** 对象
+2. 找到 **PlayerAgent** 组件
+3. **勾选 Training Mode** ✓
+4. 在 **Training Area** 字段中，拖入 `TrainingArea_1` 对象（或留空会自动查找父级）
+
+#### 1.5 创建玩家生成点（可选）
+
+1. 在 `TrainingArea_1` 下右键 → **Create Empty**
+2. 重命名为 `PlayerSpawnPoint`
+3. 设置 Position 为 `(0, 1, 0)`（区域中心上方 1 米）
+4. 在 TrainingArea 组件中，将 `Player Spawn Point` 设为该对象
+
+### 步骤 2：复制多个训练区域
+
+#### 2.1 复制 TrainingArea
+
+1. 选中 `TrainingArea_1`
+2. 按 `Ctrl + D` 复制，或右键 → **Duplicate**
+3. 重复复制，创建 `TrainingArea_2`、`TrainingArea_3`、`TrainingArea_4`
+
+#### 2.2 调整位置（防止重叠）
+
+每个区域需要在空间上分开，建议间隔 **100 单位**：
+
+| 区域 | Position X | Position Y | Position Z |
+|------|------------|------------|------------|
+| TrainingArea_1 | 0 | 0 | 0 |
+| TrainingArea_2 | 150 | 0 | 0 |
+| TrainingArea_3 | 0 | 0 | 150 |
+| TrainingArea_4 | 150 | 0 | 150 |
+
+设置方法：
+1. 选中 `TrainingArea_2`
+2. 在 Inspector 中设置 Transform Position X = `150`
+3. 对其他区域重复此操作
+
+### 步骤 3：为每个区域烘焙 NavMesh
+
+每个训练区域需要独立的 NavMesh：
+
+1. 选中每个 TrainingArea 下的 **NavMesh** 对象
+2. 在 **NavMesh Surface** 组件中点击 **Bake**
+3. 确保每个区域都有蓝色可行走区域
+
+### 步骤 4：验证配置
+
+每个 TrainingArea 应该包含：
+
+```
+TrainingArea_X
+├── Player                    ← 必须有 PlayerAgent (Training Mode ✓)
+│   ├── FirstPersonCamera
+│   ├── ThirdPersonCamera
+│   └── GroundCheck
+├── Floor                      ← 地板
+├── Walls (可选)               ← 墙壁
+├── NavMesh                    ← NavMesh Surface 组件
+└── PlayerSpawnPoint (可选)    ← 玩家重生点
+```
+
+### 步骤 5：运行并行训练
+
+1. **保存场景**：`Ctrl + S`
+
+2. **打开命令行并运行训练**：
+   ```bash
+   conda activate D:\conda_envs\my_workspace
+   cd /d "d:\Users\15407\final project"
+   mlagents-learn Assets/ML-Agents/trainer_config.yaml --run-id=MistEscape_parallel --force
+   ```
+
+3. **在 Unity 中点击 Play**
+
+4. **观察训练**：
+   - 4 个 Agent 同时训练
+   - Step 增长速度是单环境的 **4 倍**
+   - 命令行显示更快的进度更新
+
+### 多环境训练效果预期
+
+| 环境数量 | 相对速度 | 100k 步预计时间 |
+|---------|---------|----------------|
+| 1 | 1x | ~2 小时 |
+| 4 | 3.5-4x | ~30 分钟 |
+| 8 | 6-7x | ~18 分钟 |
+
+> **提示**：环境数量越多，训练越快，但也需要更多内存和 CPU 资源。建议从 4 个开始测试。
 
 ## 📝 脚本配置说明
 

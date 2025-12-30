@@ -125,11 +125,20 @@ public class UIManager : MonoBehaviour
             DrawPauseMenu();
         }
 
-        // 游戏结束画面
-        if (showGameOver)
+        // 游戏结束画面（训练模式下不显示）
+        if (showGameOver && !IsTrainingMode())
         {
             DrawGameOverScreen();
         }
+    }
+
+    /// <summary>
+    /// 检查是否处于训练模式
+    /// </summary>
+    private bool IsTrainingMode()
+    {
+        PlayerAgent agent = FindObjectOfType<PlayerAgent>();
+        return agent != null && agent.IsTrainingMode;
     }
 
     /// <summary>

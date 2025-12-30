@@ -1,0 +1,29 @@
+{
+    "PlayerAgent": {
+        "checkpoints": [
+            {
+                "steps": 10465,
+                "file_path": "results\\MistEscape_PlanB_v1\\PlayerAgent\\PlayerAgent-10465.onnx",
+                "reward": 9.069239377975464,
+                "creation_time": 1766938511.7837012,
+                "auxillary_file_paths": [
+                    "results\\MistEscape_PlanB_v1\\PlayerAgent\\PlayerAgent-10465.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 10465,
+            "file_path": "results\\MistEscape_PlanB_v1\\PlayerAgent.onnx",
+            "reward": 9.069239377975464,
+            "creation_time": 1766938511.7837012,
+            "auxillary_file_paths": [
+                "results\\MistEscape_PlanB_v1\\PlayerAgent\\PlayerAgent-10465.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.4.1"
+    }
+}

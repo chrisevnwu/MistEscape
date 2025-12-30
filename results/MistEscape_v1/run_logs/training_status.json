@@ -1,0 +1,38 @@
+{
+    "PlayerAgent": {
+        "checkpoints": [
+            {
+                "steps": 49986,
+                "file_path": "results\\MistEscape_v1\\PlayerAgent\\PlayerAgent-49986.onnx",
+                "reward": null,
+                "creation_time": 1766723780.5331097,
+                "auxillary_file_paths": [
+                    "results\\MistEscape_v1\\PlayerAgent\\PlayerAgent-49986.pt"
+                ]
+            },
+            {
+                "steps": 56194,
+                "file_path": "results\\MistEscape_v1\\PlayerAgent\\PlayerAgent-56194.onnx",
+                "reward": null,
+                "creation_time": 1766724233.770265,
+                "auxillary_file_paths": [
+                    "results\\MistEscape_v1\\PlayerAgent\\PlayerAgent-56194.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 56194,
+            "file_path": "results\\MistEscape_v1\\PlayerAgent.onnx",
+            "reward": null,
+            "creation_time": 1766724233.770265,
+            "auxillary_file_paths": [
+                "results\\MistEscape_v1\\PlayerAgent\\PlayerAgent-56194.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.4.1"
+    }
+}

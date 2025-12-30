@@ -39,6 +39,29 @@ public class Collectible : MonoBehaviour
     {
         startPosition = transform.position;
 
+        // 🔥 自动调整 Collider 大小（训练模式专用）
+        SphereCollider col = GetComponent<SphereCollider>();
+        if (col != null)
+        {
+            col.radius = 1.5f;  // 增加到1.5米（原来可能是0.5-0.8米）
+            col.isTrigger = true;
+        }
+        // 如果是 BoxCollider 或其他类型
+        else
+        {
+            Collider[] cols = GetComponents<Collider>();
+            foreach (Collider c in cols)
+            {
+                c.isTrigger = true;
+                // 尝试扩大范围
+                if (c is BoxCollider)
+                {
+                    BoxCollider box = c as BoxCollider;
+                    box.size = box.size * 2.0f;  // 扩大2倍
+                }
+            }
+        }
+
         // 启动发光效果
         if (glowEffect != null)
         {
@@ -56,6 +79,18 @@ public class Collectible : MonoBehaviour
         // 上下浮动动画
         float newY = startPosition.y + Mathf.Sin(Time.time * bobSpeed) * bobHeight;
         transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+
+        // 🔥 磁吸效果：吸引附近的玩家
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            float dist = Vector3.Distance(transform.position, player.transform.position);
+            if (dist < 3f && dist > 0.5f)  // 3米内开始吸引
+            {
+                Vector3 dirToPlayer = (player.transform.position - transform.position).normalized;
+                transform.position += dirToPlayer * 2f * Time.deltaTime;  // 2m/s 拉近速度
+            }
+        }
     }
 
     private void OnTriggerEnter(Collider other)

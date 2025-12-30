@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
 
     // 组件引用
     private CharacterController controller;
+    private PlayerAgent playerAgent;
 
     // 状态变量
     private Vector3 velocity;
@@ -55,6 +56,8 @@ public class PlayerController : MonoBehaviour
         {
             controller = gameObject.AddComponent<CharacterController>();
         }
+        
+        playerAgent = GetComponent<PlayerAgent>();
 
         // 自动查找摄像机（如果未在 Inspector 中赋值）
         if (firstPersonCamera == null)
@@ -88,6 +91,10 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // 训练模式下完全禁用所有输入
+        if (playerAgent != null && playerAgent.IsTrainingMode)
+            return;
+            
         // 如果 CharacterController 被禁用（训练模式），跳过所有输入处理
         if (controller == null || !controller.enabled)
             return;

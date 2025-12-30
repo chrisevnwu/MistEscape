@@ -30,6 +30,7 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] private Transform[] patrolPoints;     // 巡逻点
     [SerializeField] private float patrolSpeed = 2f;       // 巡逻速度
     [SerializeField] private float patrolWaitTime = 2f;    // 巡逻等待时间
+    [SerializeField] private float randomPatrolRadius = 15f; // 随机巡逻半径（当没有巡逻点时）
 
     [Header("追击设置")]
     [SerializeField] private float chaseSpeed = 5f;        // 追击速度
@@ -202,7 +203,30 @@ public class EnemyAI : MonoBehaviour
 
         if (patrolPoints == null || patrolPoints.Length == 0)
         {
-            // 没有巡逻点，原地待命
+            // 没有巡逻点，使用随机巡逻
+            if (!agent.hasPath || agent.remainingDistance < 0.5f)
+            {
+                // 到达目标或没有路径，生成新的随机巡逻点
+                Vector3 randomPoint = GenerateRandomPatrolPoint();
+                agent.SetDestination(randomPoint);
+                
+                // 短暂等待
+                if (!isWaiting)
+                {
+                    isWaiting = true;
+                    patrolWaitTimer = 0f;
+                }
+            }
+            
+            // 处理等待
+            if (isWaiting)
+            {
+                patrolWaitTimer += Time.deltaTime;
+                if (patrolWaitTimer >= patrolWaitTime * 0.5f) // 随机巡逻时等待时间减半
+                {
+                    isWaiting = false;
+                }
+            }
             return;
         }
 
@@ -391,6 +415,26 @@ public class EnemyAI : MonoBehaviour
     public void SetPlayer(Transform playerTransform)
     {
         player = playerTransform;
+    }
+
+    /// <summary>
+    /// 生成随机巡逻点
+    /// </summary>
+    private Vector3 GenerateRandomPatrolPoint()
+    {
+        // 在当前位置周围生成随机巡逻点
+        Vector3 randomDirection = Random.insideUnitSphere * randomPatrolRadius;
+        randomDirection += transform.position;
+        randomDirection.y = transform.position.y; // 保持Y轴不变
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomDirection, out hit, randomPatrolRadius, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+        
+        // 如果随机点不在NavMesh上，返回当前位置
+        return transform.position;
     }
 
     /// <summary>
